@@ -7,22 +7,62 @@ import os
 from keras_retinanet.preprocessing.generator import Generator
 from keras_retinanet.utils.image import read_image_bgr
 
+
 class ViaGenerator(Generator):
 
     def __init__(self, via_filename, **kwargs):
         if not os.path.exists(via_filename):
             raise IOError("File not exists: {}".format(via_filename))
 
-        with open(via_filename, 'r') as f:
-            raw_via_annotations = json.load(f)
-        self.image_path = raw_via_annotations['_via_settings']['core']['default_filepath']
-        via_annotations = raw_via_annotations['_via_img_metadata']
-        # self.categories = {0: "background", 1: "person"}
-        # self.labels = {"background": 0, "person": 1}
         self.categories = {0: "person"}
         self.labels = {"person": 0}
-        self.image_list, self.annotations = self.via_to_bbox(via_annotations)
+
+        if via_filename.endswith('.json'):
+            self.image_path, self.image_list, self.annotations = \
+                self.load_via_annotation(via_filename)
+        else:
+            filenames = []
+            with open(via_filename, 'r') as f:
+                for line in f:
+                    if len(line) > 0:
+                        filenames.append(line.strip())
+
+            print(filenames)
+            self.image_path = []
+            self.image_list = []
+            self.annotations = []
+            for filename in filenames:
+                try:
+                    image_path, image_list, annotations = \
+                        self.load_via_annotation(filename)
+                    self.image_path += image_path
+                    self.image_list += image_list
+                    self.annotations += annotations
+
+                except IOError as e:
+                    print('Failed to parse via annotation file: {}, {}'
+                          .format(filename, e))
+
         super(ViaGenerator, self).__init__(**kwargs)
+
+        # for i in range(self.size()):
+        #     try:
+        #         self.load_image(i)
+        #     except Exception as e:
+        #         print('Failed to read im {}'.format(self.image_list[i]))
+        #     if i > 0 and i % 100 == 0:
+        #         print('checked {} images'.format(i))
+        # print('done loading via annotation')
+
+    def load_via_annotation(self, via_filename):
+        with open(via_filename, 'r') as f:
+            raw_via_annotations = json.load(f)
+
+        image_path = raw_via_annotations['_via_settings']['core']['default_filepath']
+        via_annotations = raw_via_annotations['_via_img_metadata']
+        image_list, annotations = self.via_to_bbox(via_annotations)
+        image_path_list = [image_path] * len(image_list)
+        return image_path_list, image_list, annotations
 
     def via_to_bbox(self, via_annotations):
         image_filenames = []
@@ -81,7 +121,7 @@ class ViaGenerator(Generator):
         return 1
 
     def load_image(self, image_index):
-        path = os.path.join(self.image_path, self.image_list[image_index])
+        path = os.path.join(self.image_path[image_index], self.image_list[image_index])
         return read_image_bgr(path)
 
     def load_annotations(self, image_index):
@@ -90,6 +130,8 @@ class ViaGenerator(Generator):
 
 if __name__ == "__main__":
     viagen = ViaGenerator('/media/fwang/Data1/PedestrianDataset/WIDER Person Challenge 2019/Annotations/val_via_no_filter.json')
+    # viagen = ViaGenerator('./data/test_via_files.txt')
+    print(viagen.size())
     image_index = 0
     im = viagen.load_image(image_index)
     print(im.shape)
