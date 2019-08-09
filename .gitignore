@@ -4,3 +4,12 @@ __pycache__/
 *.so
 /.pytest_cache
 /.cache
+
+*.jpg
+*.png
+
+.idea
+venv
+build/
+logs/
+eval_results*

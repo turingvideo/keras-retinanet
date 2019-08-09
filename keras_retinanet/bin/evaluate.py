@@ -22,6 +22,8 @@ import keras
 import tensorflow as tf
 
 # Allow relative imports when being executed as script.
+from keras_retinanet.utils.image import preprocess_image
+
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
     import keras_retinanet.bin  # noqa: F401
@@ -77,6 +79,18 @@ def create_generator(args):
             config=args.config,
             shuffle_groups=False,
         )
+    elif args.dataset_type == 'via':
+        from ..preprocessing.via import ViaGenerator
+        def caffe_preprocess_image(inputs):
+            return preprocess_image(inputs, mode='caffe')
+        validation_generator = ViaGenerator(
+            args.test_path,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side,
+            config=args.config,
+            shuffle_groups=False,
+            preprocess_image=caffe_preprocess_image
+        )
     else:
         raise ValueError('Invalid data type received: {}'.format(args.dataset_type))
 
@@ -99,6 +113,9 @@ def parse_args(args):
     csv_parser = subparsers.add_parser('csv')
     csv_parser.add_argument('annotations', help='Path to CSV file containing annotations for evaluation.')
     csv_parser.add_argument('classes', help='Path to a CSV file containing class label mapping.')
+
+    via_parser = subparsers.add_parser('via')
+    via_parser.add_argument('test_path', help="testing annotation path")
 
     parser.add_argument('model',              help='Path to RetinaNet model.')
     parser.add_argument('--convert-model',    help='Convert the model to an inference model (ie. the input is a training model).', action='store_true')
