@@ -10,33 +10,31 @@ from keras_retinanet.utils.image import read_image_bgr
 
 class ViaGenerator(Generator):
 
-    def __init__(self, via_filename, **kwargs):
-        if not os.path.exists(via_filename):
-            raise IOError("File not exists: {}".format(via_filename))
+    def __init__(self, via_file_path, **kwargs):
+        if not os.path.exists(via_file_path):
+            raise IOError("File not exists: {}".format(via_file_path))
 
         self.categories = {0: "person"}
         self.labels = {"person": 0}
 
-        if via_filename.endswith('.json'):
-            self.image_path, self.image_list, self.annotations = \
-                self.load_via_annotation(via_filename)
+        if via_file_path.endswith('.json'):
+            self.image_paths, self.annotations = \
+                self.load_via_annotation(via_file_path)
         else:
             filenames = []
-            with open(via_filename, 'r') as f:
+            with open(via_file_path, 'r') as f:
                 for line in f:
                     if len(line) > 0:
                         filenames.append(line.strip())
 
             print(filenames)
-            self.image_path = []
-            self.image_list = []
+            self.image_paths = []
             self.annotations = []
             for filename in filenames:
                 try:
-                    image_path, image_list, annotations = \
+                    image_paths, annotations = \
                         self.load_via_annotation(filename)
-                    self.image_path += image_path
-                    self.image_list += image_list
+                    self.image_paths += image_paths
                     self.annotations += annotations
 
                 except IOError as e:
@@ -54,15 +52,24 @@ class ViaGenerator(Generator):
         #         print('checked {} images'.format(i))
         # print('done loading via annotation')
 
-    def load_via_annotation(self, via_filename):
-        with open(via_filename, 'r') as f:
+    def load_via_annotation(self, via_file_path):
+
+        via_file_folder_path = os.path.dirname(via_file_path)
+
+        with open(via_file_path, 'r') as f:
             raw_via_annotations = json.load(f)
 
-        image_path = raw_via_annotations['_via_settings']['core']['default_filepath']
+        image_folder_relative_path = raw_via_annotations['_via_settings']['core']['default_filepath']
+        image_folder_path = os.path.join(via_file_folder_path, image_folder_relative_path)
         via_annotations = raw_via_annotations['_via_img_metadata']
         image_list, annotations = self.via_to_bbox(via_annotations)
-        image_path_list = [image_path] * len(image_list)
-        return image_path_list, image_list, annotations
+        
+        image_paths = []
+        for image_name in image_list:
+            image_path = os.path.join(image_folder_path, image_name)
+            image_paths.append(image_path)
+
+        return image_paths, annotations
 
     def via_to_bbox(self, via_annotations):
         image_filenames = []
@@ -121,7 +128,7 @@ class ViaGenerator(Generator):
         return 1
 
     def load_image(self, image_index):
-        path = os.path.join(self.image_path[image_index], self.image_list[image_index])
+        path = self.image_paths[image_index]
         return read_image_bgr(path)
 
     def load_annotations(self, image_index):

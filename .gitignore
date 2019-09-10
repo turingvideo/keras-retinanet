@@ -36,3 +36,5 @@ eval_results*
 .coverage.*
 coverage.xml
 *.cover
+
+.vscode
