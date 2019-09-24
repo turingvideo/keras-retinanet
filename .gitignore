@@ -40,3 +40,4 @@ coverage.xml
 .vscode
 
 .DS_Store
+.ipynb_checkpoints/

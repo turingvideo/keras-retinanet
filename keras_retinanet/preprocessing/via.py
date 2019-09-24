@@ -22,10 +22,11 @@ class ViaGenerator(Generator):
                 self.load_via_annotation(via_file_path)
         else:
             filenames = []
+            via_file_folder_path = os.path.dirname(via_file_path)
             with open(via_file_path, 'r') as f:
                 for line in f:
                     if len(line) > 0:
-                        filenames.append(line.strip())
+                        filenames.append(os.path.join(via_file_folder_path, line.strip()))
 
             print(filenames)
             self.image_paths = []
