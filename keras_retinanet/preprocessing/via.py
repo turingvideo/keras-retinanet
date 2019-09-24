@@ -25,9 +25,12 @@ class ViaGenerator(Generator):
             via_file_folder_path = os.path.dirname(via_file_path)
             with open(via_file_path, 'r') as f:
                 for line in f:
-                    if len(line) > 0:
-                        filenames.append(os.path.join(via_file_folder_path, line.strip()))
-
+                    json_path = line.strip()
+                    if len(json_path) > 0:
+                        if os.path.isabs(json_path):
+                            filenames.append(line.strip())
+                        else:
+                            filenames.append(os.path.join(via_file_folder_path, line.strip()))
             print(filenames)
             self.image_paths = []
             self.annotations = []
@@ -60,8 +63,14 @@ class ViaGenerator(Generator):
         with open(via_file_path, 'r') as f:
             raw_via_annotations = json.load(f)
 
-        image_folder_relative_path = raw_via_annotations['_via_settings']['core']['default_filepath']
-        image_folder_path = os.path.join(via_file_folder_path, image_folder_relative_path)
+        raw_image_folder_path = raw_via_annotations['_via_settings']['core']['default_filepath']
+        
+        if os.path.isabs(raw_image_folder_path):
+            image_folder_path = raw_image_folder_path
+        else:
+            image_folder_path = os.path.join(via_file_folder_path, raw_image_folder_path)
+        
+        
         via_annotations = raw_via_annotations['_via_img_metadata']
         image_list, annotations = self.via_to_bbox(via_annotations)
         
