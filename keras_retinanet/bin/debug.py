@@ -124,6 +124,17 @@ def create_generator(args):
             image_max_side=args.image_max_side,
             config=args.config
         )
+    elif args.dataset_type == 'via':
+        from ..preprocessing.via import ViaGenerator
+        generator = ViaGenerator(
+            args.via_path,
+            group_method='random',
+            transform_generator=transform_generator,
+            visual_effect_generator=visual_effect_generator,
+            image_min_side=args.image_min_side,
+            image_max_side=args.image_max_side,
+            config=args.config
+        )
     else:
         raise ValueError('Invalid data type received: {}'.format(args.dataset_type))
 
@@ -148,6 +159,9 @@ def parse_args(args):
     kitti_parser = subparsers.add_parser('kitti')
     kitti_parser.add_argument('kitti_path', help='Path to dataset directory (ie. /tmp/kitti).')
     kitti_parser.add_argument('subset', help='Argument for loading a subset from train/val.')
+
+    via_parser = subparsers.add_parser('via')
+    via_parser.add_argument('via_path', help="training annotation path")
 
     def csv_list(string):
         return string.split(',')
@@ -189,14 +203,19 @@ def run(generator, args, anchor_params):
         # load the data
         image       = generator.load_image(i)
         annotations = generator.load_annotations(i)
+        print("num of annotations: {}".format(len(annotations['labels'])))
         if len(annotations['labels']) > 0 :
+
+            print(f"bbs: {annotations['bboxes']}")
+            
             # apply random transformations
-            if args.random_transform:
-                image, annotations = generator.random_transform_group_entry(image, annotations)
-                image, annotations = generator.random_visual_effect_group_entry(image, annotations)
+            # if args.random_transform:
+            #     image, annotations = generator.random_transform_group_entry(image, annotations)
+            #     image, annotations = generator.random_visual_effect_group_entry(image, annotations)
 
             # resize the image and annotations
             if args.resize:
+                print("resize")
                 image, image_scale = generator.resize_image(image)
                 annotations['bboxes'] *= image_scale
 
@@ -227,9 +246,9 @@ def run(generator, args, anchor_params):
         # press right for next image and left for previous (linux)
         # if you run macOS, it might be convenient using "n" and "m" key (key == 110 and key == 109)
 
-        if key == 83:
+        if key == 110:
             i = (i + 1) % generator.size()
-        if key == 81:
+        if key == 109:
             i -= 1
             if i < 0:
                 i = generator.size() - 1

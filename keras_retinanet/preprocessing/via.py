@@ -1,5 +1,5 @@
 # from ..preprocessing.generator import Generator
-
+import copy
 import json
 import numpy as np
 import os
@@ -142,8 +142,7 @@ class ViaGenerator(Generator):
         return read_image_bgr(path)
 
     def load_annotations(self, image_index):
-        return self.annotations[image_index]
-
+        return copy.deepcopy(self.annotations[image_index])
 
 if __name__ == "__main__":
     viagen = ViaGenerator('/media/fwang/Data1/PedestrianDataset/WIDER Person Challenge 2019/Annotations/val_via_no_filter.json')
