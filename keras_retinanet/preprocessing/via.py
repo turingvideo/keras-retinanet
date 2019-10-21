@@ -10,40 +10,38 @@ from keras_retinanet.utils.image import read_image_bgr
 
 class ViaGenerator(Generator):
 
-    def __init__(self, via_file_path, **kwargs):
-        if not os.path.exists(via_file_path):
-            raise IOError("File not exists: {}".format(via_file_path))
+    def __init__(self, via_catalog_file_path, **kwargs):
+        if not os.path.exists(via_catalog_file_path):
+            raise IOError("File not exists: {}".format(via_catalog_file_path))
 
         self.categories = {0: "person"}
         self.labels = {"person": 0}
 
-        if via_file_path.endswith('.json'):
-            self.image_paths, self.annotations = \
-                self.load_via_annotation(via_file_path)
-        else:
-            filenames = []
-            via_file_folder_path = os.path.dirname(via_file_path)
-            with open(via_file_path, 'r') as f:
-                for line in f:
-                    json_path = line.strip()
-                    if len(json_path) > 0:
-                        if os.path.isabs(json_path):
-                            filenames.append(line.strip())
-                        else:
-                            filenames.append(os.path.join(via_file_folder_path, line.strip()))
-            print(filenames)
-            self.image_paths = []
-            self.annotations = []
-            for filename in filenames:
-                try:
-                    image_paths, annotations = \
-                        self.load_via_annotation(filename)
-                    self.image_paths += image_paths
-                    self.annotations += annotations
+        # if via_file_path.endswith('.json'):
+        #     self.image_paths, self.annotations = \
+        #         self.load_via_annotation(via_file_path)
+        # else:
+        with open(via_catalog_file_path, 'r') as f:
+            via_catalog_folder_path = os.path.dirname(via_catalog_file_path)
+            catalog_content = json.load(via_catalog_file_path)
+            via_folder_path = catalog_content["via_folder_path"]
+            relative_via_paths = catalog_content["relative_via_paths"]
+            via_file_paths = [os.path.join(via_folder_path, relative_via_path)
+                              for relative_via_path
+                              in relative_via_paths]
+        print(via_file_paths)
+        self.image_paths = []
+        self.annotations = []
+        for via_file_path in via_file_paths:
+            try:
+                image_paths, annotations = \
+                    self.load_via_annotation(via_file_path)
+                self.image_paths += image_paths
+                self.annotations += annotations
 
-                except IOError as e:
-                    print('Failed to parse via annotation file: {}, {}'
-                          .format(filename, e))
+            except IOError as e:
+                print('Failed to parse via annotation file: {}, {}'
+                      .format(via_file_path, e))
 
         super(ViaGenerator, self).__init__(**kwargs)
 
@@ -64,16 +62,15 @@ class ViaGenerator(Generator):
             raw_via_annotations = json.load(f)
 
         raw_image_folder_path = raw_via_annotations['_via_settings']['core']['default_filepath']
-        
+
         if os.path.isabs(raw_image_folder_path):
             image_folder_path = raw_image_folder_path
         else:
             image_folder_path = os.path.join(via_file_folder_path, raw_image_folder_path)
-        
-        
+
         via_annotations = raw_via_annotations['_via_img_metadata']
         image_list, annotations = self.via_to_bbox(via_annotations)
-        
+
         image_paths = []
         for image_name in image_list:
             image_path = os.path.join(image_folder_path, image_name)
@@ -144,8 +141,10 @@ class ViaGenerator(Generator):
     def load_annotations(self, image_index):
         return copy.deepcopy(self.annotations[image_index])
 
+
 if __name__ == "__main__":
-    viagen = ViaGenerator('/media/fwang/Data1/PedestrianDataset/WIDER Person Challenge 2019/Annotations/val_via_no_filter.json')
+    viagen = ViaGenerator(
+        '/media/fwang/Data1/PedestrianDataset/WIDER Person Challenge 2019/Annotations/val_via_no_filter.json')
     # viagen = ViaGenerator('./data/test_via_files.txt')
     print(viagen.size())
     image_index = 0
