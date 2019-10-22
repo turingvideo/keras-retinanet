@@ -4,8 +4,8 @@ import json
 import numpy as np
 import os
 
-from keras_retinanet.preprocessing.generator import Generator
-from keras_retinanet.utils.image import read_image_bgr
+from .generator import Generator
+from ..utils.image import read_image_bgr
 
 
 class ViaGenerator(Generator):
@@ -23,8 +23,10 @@ class ViaGenerator(Generator):
         # else:
         with open(via_catalog_file_path, 'r') as f:
             via_catalog_folder_path = os.path.dirname(via_catalog_file_path)
-            catalog_content = json.load(via_catalog_file_path)
+            catalog_content = json.load(f)
             via_folder_path = catalog_content["via_folder_path"]
+            if not os.path.isabs(via_folder_path):
+                via_folder_path = os.path.join(via_catalog_folder_path, via_folder_path)
             relative_via_paths = catalog_content["relative_via_paths"]
             via_file_paths = [os.path.join(via_folder_path, relative_via_path)
                               for relative_via_path
